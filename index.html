@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instruction Cycle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mist:#f3f0fa; --pearl:#fffdfb; --ink:#3b2f4f; --muted:#6f5f90; --line:#e6e0f2; --line2:#cfc4e6; --plum:#4a3a6b;
+  --ok:#1f7566; --ok-bg:#def4ee; --ok-line:#8fd8c6; --ok-deep:#14594c;
+  --fe:#1f6a95; --fe-bg:#e1f0f9; --fe-line:#a9d3ea;
+  --de:#8a6420; --de-bg:#f6ecd7; --de-line:#e6d3a8;
+  --ex:#8e3367; --ex-bg:#f7e3ef; --ex-line:#e9b5d3;
+  --disp:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  --body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --chipw:96px;
+}
+*{box-sizing:border-box}
+html{background:var(--mist)}
+body{margin:0;color:var(--ink);font:400 17px/1.55 var(--body)}
+.board{max-width:920px;margin:28px auto;padding:38px 42px 28px;background:var(--pearl);border-radius:28px;box-shadow:0 1px 0 var(--line),0 24px 56px -24px rgba(74,58,107,.28)}
+h1{margin:0;font:600 58px/1 var(--disp)}
+.lede{margin:8px 0 0;font:italic 500 23px/1.3 var(--disp);color:var(--muted)}
+.student{display:flex;flex-wrap:wrap;gap:8px 32px;margin-top:18px;padding:12px 18px;background:var(--mist);border:1px solid var(--line2);border-radius:14px;font-weight:700;font-size:16px}
+.student span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.sec{padding:26px 0;border-top:1px dashed var(--line2)}
+.sec.first{margin-top:22px;border-top:1px solid var(--line2)}
+
+.setup{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end;margin-top:16px}
+.field span.fl{display:block;color:var(--muted);font-size:14px;margin-bottom:4px}
+input[type=number]{width:96px;background:var(--pearl);color:var(--ink);border:1.5px solid var(--line2);border-radius:12px;padding:9px 12px;font:700 18px var(--body)}
+input[type=number]:focus{outline:none;border-color:var(--plum);box-shadow:0 0 0 4px rgba(74,58,107,.12)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:4px;background:var(--mist);border-radius:999px}
+.seg button{font:700 16px var(--body);color:var(--muted);background:transparent;border:0;border-radius:999px;padding:8px 20px;cursor:pointer}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--pearl);color:var(--plum);box-shadow:0 1px 4px rgba(74,58,107,.18)}
+.sum{font:600 30px var(--disp);padding-bottom:4px}
+.toggle{display:flex;align-items:center;gap:10px;margin-top:18px;font-weight:600;cursor:pointer;width:fit-content}
+.toggle input{width:20px;height:20px;accent-color:var(--plum)}
+.toggle small{color:var(--muted);font-weight:400}
+
+.stages{display:flex;gap:10px;align-items:stretch}
+.stage{flex:1;display:flex;align-items:center;gap:14px;padding:12px 16px;border:1.5px solid var(--line);border-radius:18px;background:var(--mist);color:var(--muted);transition:background .3s,border-color .3s}
+.stage .n{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;border:1.5px solid currentColor;font:700 16px var(--body)}
+.stage b{display:block;font:600 30px/1 var(--disp)}
+.stage span{display:block;font-size:14px;line-height:1.3}
+.stage.fetch.on{background:var(--fe-bg);border-color:var(--fe-line);color:var(--fe)}
+.stage.decode.on{background:var(--de-bg);border-color:var(--de-line);color:var(--de)}
+.stage.execute.on{background:var(--ex-bg);border-color:var(--ex-line);color:var(--ex)}
+.stage.on span{color:var(--ink)}
+.stepno{margin:14px 0 0;color:var(--muted);font-size:15px}
+
+.diagram{display:grid;grid-template-columns:1fr 130px 1fr;gap:0;align-items:stretch}
+.panel{padding:16px 18px;border:1.5px solid var(--line2);border-radius:20px;background:var(--pearl)}
+.panel h2{margin:0 0 10px;font:600 30px/1 var(--disp)}
+.panel h3{margin:14px 0 6px;color:var(--muted);font:700 14px var(--body)}
+.mrow{display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:5px;border:1.5px solid var(--line);border-radius:12px;background:var(--pearl);transition:background .3s,border-color .3s}
+.mrow .a{width:22px;color:var(--muted);font-weight:700;font-size:14px;text-align:right}
+.mrow .t{font:700 17px var(--body)}
+.mrow .v{margin-left:auto;font:600 28px/1 var(--disp);font-variant-numeric:tabular-nums}
+.mrow .tag{margin-left:auto;font-size:12px;font-weight:700;color:var(--plum)}
+.mrow.cur{background:var(--mist);border-color:var(--plum)}
+.mrow.rd{background:var(--fe-bg);border-color:var(--fe-line);animation:pop .6s ease-out}
+.mrow.wr{background:var(--ok-bg);border-color:var(--ok-line);animation:pop .6s ease-out}
+.reg{display:flex;align-items:center;gap:12px;padding:9px 14px;margin-bottom:8px;border:1.5px solid var(--line);border-radius:14px;background:var(--pearl);transition:background .3s,border-color .3s}
+.reg h4{margin:0;font:700 18px var(--body);width:44px;flex:none}
+.reg small{display:block;color:var(--muted);font-size:13px;line-height:1.25;flex:1;min-width:0}
+.reg .v{font:600 30px/1 var(--disp);min-width:56px;text-align:right}
+.reg .v.txt{font-size:21px}
+.reg.hot{background:var(--ok-bg);border-color:var(--ok-line);animation:pop .6s ease-out}
+@keyframes pop{0%{transform:scale(.97)}40%{transform:scale(1.03)}100%{transform:none}}
+
+.lane{position:relative;min-height:150px}
+.lane::before{content:"";position:absolute;left:8px;right:8px;top:50%;border-top:2px dashed var(--line2)}
+.chip{position:absolute;top:50%;width:var(--chipw);transform:translateY(-50%);padding:7px 4px;text-align:center;border-radius:14px;background:var(--plum);color:#fff;font:700 15px/1.2 var(--body);box-shadow:0 8px 20px -6px rgba(74,58,107,.5);z-index:1}
+.chip.fetch{background:var(--fe)}.chip.execute{background:var(--ex)}
+.chip.ltr{left:0;animation:ltr 1s ease-in-out both}
+.chip.rtl{left:calc(100% - var(--chipw));animation:rtl 1s ease-in-out both}
+@keyframes ltr{from{left:0}to{left:calc(100% - var(--chipw))}}
+@keyframes rtl{from{left:calc(100% - var(--chipw))}to{left:0}}
+.lcap{position:absolute;left:0;right:0;top:calc(50% + 22px);text-align:center;color:var(--muted);font-size:13px;line-height:1.3;padding:0 4px}
+
+.micro{display:none;margin:22px 0 0;align-items:center;gap:12px;font:700 16px var(--mono)}
+.micro b{padding:2px 12px;border-radius:999px;background:var(--mist);color:var(--plum);font:700 14px var(--body)}
+.micro.show{display:flex}
+.micro + .say{margin-top:8px}
+.say{margin:22px 0 0;min-height:78px;font:500 26px/1.35 var(--disp)}
+
+.ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:700 16px var(--body);padding:11px 24px;border:1.5px solid var(--line2);border-radius:999px;background:var(--pearl);color:var(--ink);cursor:pointer}
+.btn:hover:not(:disabled){background:var(--mist)}
+.btn.go{background:var(--plum);border-color:var(--plum);color:#fff;padding:13px 44px;font-size:18px}
+.btn.go:hover:not(:disabled){background:#3a2c57}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--plum);outline-offset:3px}
+.ctl select{background:var(--pearl);color:var(--ink);border:1.5px solid var(--line2);border-radius:999px;padding:10px 14px;font:600 15px var(--body)}
+.out{margin-top:20px;padding:16px 22px;border-radius:16px;background:var(--ok-bg);border:1px solid var(--ok-line);color:var(--ok-deep);font:600 26px/1.3 var(--disp)}
+
+.info-title{margin:0;color:var(--plum);font:italic 600 24px var(--disp)}
+.info h3{margin:24px 0 8px;font:600 26px var(--disp)}
+svg.flow{width:100%;max-width:420px;height:auto;display:block;margin:14px auto 0}
+svg.flow .fb{fill:var(--mist);stroke:var(--line2);stroke-width:1.5}
+svg.flow .ff{fill:var(--fe-bg);stroke:var(--fe-line)}
+svg.flow .fd{fill:var(--de-bg);stroke:var(--de-line)}
+svg.flow .fx{fill:var(--ex-bg);stroke:var(--ex-line)}
+svg.flow text{fill:var(--ink);font:600 14px var(--body);text-anchor:middle}
+svg.flow .lbl{fill:var(--muted);font-size:13px}
+svg.flow line,svg.flow polyline{stroke:#8a7aa8;stroke-width:1.5;fill:none}
+table{border-collapse:collapse;font-size:15px}
+td,th{text-align:left;padding:6px 20px 6px 0;border-bottom:1px dotted var(--line2)}
+th{color:var(--muted);font-size:13px}
+td.m{font:700 14px var(--mono)}
+.note{color:var(--muted);font-size:15px;max-width:62ch}
+
+@media (max-width:760px){
+  .board{margin:0;border-radius:0;padding:24px 16px}
+  h1{font-size:44px}
+  .stages{flex-direction:column}
+  .diagram{grid-template-columns:1fr;grid-template-rows:auto 120px auto}
+  .lane{min-height:0}
+  .lane::before{left:50%;right:auto;top:6px;bottom:6px;border-top:0;border-left:2px dashed var(--line2)}
+  .chip{left:50%;top:auto;transform:translateX(-50%)}
+  .chip.ltr{left:50%;top:0;animation-name:down}
+  .chip.rtl{left:50%;top:calc(100% - 34px);animation-name:up}
+  @keyframes down{from{top:0}to{top:calc(100% - 34px)}}
+  @keyframes up{from{top:calc(100% - 34px)}to{top:0}}
+  .lcap{top:auto;bottom:0;left:calc(50% + 60px);right:0;text-align:left}
+  .say{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="board">
+
+<header>
+  <h1>Instruction Cycle</h1>
+  <p class="lede">See how a CPU runs a program: for every instruction it fetches, decodes, then executes.</p>
+  <div class="student">
+    <div><span>Name</span>Praneeti Pramod Shinde</div>
+    <div><span>P.R.N.</span>2125UIDF1108</div>
+    <div><span>Topic</span>CPU Instruction Cycle (Fetch, Decode, Execute)</div>
+  </div>
+</header>
+
+<section class="sec first">
+  <div class="seg" id="progSeg" role="group" aria-label="Choose a program">
+    <button data-v="addsub" class="on">Add or subtract</button>
+    <button data-v="three">Add three numbers</button>
+  </div>
+  <div class="setup">
+    <div class="field" id="fa"><span class="fl">First number</span><input type="number" id="na" value="5" min="0" max="99" step="1"></div>
+    <div class="field" id="fop"><span class="fl">Do what?</span>
+      <div class="seg" id="opSeg"><button data-v="add" class="on">Add</button><button data-v="sub">Subtract</button></div></div>
+    <div class="field" id="fb"><span class="fl">Second number</span><input type="number" id="nb" value="3" min="0" max="99" step="1"></div>
+    <div class="field" id="fc"><span class="fl">Third number</span><input type="number" id="nc" value="6" min="0" max="99" step="1"></div>
+    <div class="sum" id="sum"></div>
+  </div>
+  <label class="toggle"><input type="checkbox" id="detail"> Show detailed steps <small>(adds the MAR and MDR registers)</small></label>
+</section>
+
+<section class="sec">
+  <div class="stages" id="stages"></div>
+  <p class="stepno" id="stepno"></p>
+</section>
+
+<section class="sec">
+  <div class="diagram">
+    <div class="panel" id="memP"></div>
+    <div class="lane" id="lane"></div>
+    <div class="panel" id="cpuP"></div>
+  </div>
+  <div class="micro" id="micro"></div>
+  <p class="say" id="say" aria-live="polite"></p>
+</section>
+
+<section class="sec">
+  <div class="ctl">
+    <button class="btn" id="prev">Back</button>
+    <button class="btn go" id="next">Next step</button>
+    <button class="btn" id="play">Auto-play</button>
+    <button class="btn" id="end">Finish</button>
+    <button class="btn" id="reset">Restart</button>
+    <select id="speed" aria-label="Auto-play speed"><option value="3000">Slow</option><option value="1800" selected>Normal</option><option value="1100">Fast</option></select>
+  </div>
+  <div id="out"></div>
+</section>
+
+<section class="sec">
+  <div class="info">
+    <h2 class="info-title">Flowchart, instructions and the detailed steps</h2>
+    <h3>Flowchart</h3>
+    <svg class="flow" viewBox="0 0 420 330" role="img" aria-label="Instruction cycle flowchart">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8a7aa8"/></marker></defs>
+      <rect class="fb ff" x="110" y="8" width="200" height="52" rx="10"/><text x="210" y="30">Fetch</text><text x="210" y="49">Get the next instruction</text>
+      <line x1="210" y1="60" x2="210" y2="86" marker-end="url(#ar)"/>
+      <rect class="fb fd" x="110" y="86" width="200" height="52" rx="10"/><text x="210" y="108">Decode</text><text x="210" y="127">Work out what it means</text>
+      <line x1="210" y1="138" x2="210" y2="164" marker-end="url(#ar)"/>
+      <rect class="fb fx" x="110" y="164" width="200" height="52" rx="10"/><text x="210" y="186">Execute</text><text x="210" y="205">Do it</text>
+      <line x1="210" y1="216" x2="210" y2="238" marker-end="url(#ar)"/>
+      <polygon class="fb" points="210,238 300,274 210,310 120,274"/><text x="210" y="279">Was it HALT?</text>
+      <polyline points="120,274 40,274 40,34 110,34" marker-end="url(#ar)"/><text class="lbl" x="78" y="266">No</text>
+      <line x1="300" y1="274" x2="360" y2="274" marker-end="url(#ar)"/><text class="lbl" x="330" y="266">Yes</text>
+      <text x="390" y="279">Stop</text>
+    </svg>
+    <h3>The instructions</h3>
+    <table>
+      <thead><tr><th>Instruction</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><b>LOAD x</b></td><td>Copy the number in x into ACC</td></tr>
+        <tr><td><b>ADD x</b></td><td>Add the number in x to ACC</td></tr>
+        <tr><td><b>SUB x</b></td><td>Subtract the number in x from ACC</td></tr>
+        <tr><td><b>STORE x</b></td><td>Copy ACC into x</td></tr>
+        <tr><td><b>HALT</b></td><td>Stop the CPU</td></tr>
+      </tbody>
+    </table>
+    <h3>Fetch in detail</h3>
+    <table>
+      <tbody>
+        <tr><td class="m">MAR ← PC</td><td>the address of the next instruction goes into MAR</td></tr>
+        <tr><td class="m">MDR ← M[MAR]</td><td>memory is read and the instruction arrives in MDR</td></tr>
+        <tr><td class="m">IR ← MDR</td><td>the instruction is copied into IR</td></tr>
+        <tr><td class="m">PC ← PC + 1</td><td>the PC moves on to the next instruction</td></tr>
+      </tbody>
+    </table>
+    <p class="note">PC (Program Counter) remembers which instruction comes next. IR (Instruction Register) holds the instruction being worked on. ACC (Accumulator) is the CPU's working number. MAR (Memory Address Register) holds the address to read or write. MDR (Memory Data Register) holds the data going to or from memory. The program and its numbers share one memory, so each row has its own address.</p>
+  </div>
+</section>
+</div>
+
+<script>
+// ==== ENGINE START (pure logic, no DOM) ====
+const CELL_LABEL = { A: 'A', B: 'B', C: 'C', R: 'Result' };
+
+// Build the program and the memory layout. The program sits at the start of memory,
+// and the number cells come straight after it, so every row has its own address.
+function layout(progId, p){
+  let rows, keys, mem0;
+  if (progId === 'addsub'){
+    rows = [['LOAD', 'A'], [p.op === 'sub' ? 'SUB' : 'ADD', 'B'], ['STORE', 'R'], ['HALT']];
+    keys = ['A', 'B', 'R']; mem0 = { A: p.a, B: p.b, R: null };
+  } else {
+    rows = [['LOAD', 'A'], ['ADD', 'B'], ['ADD', 'C'], ['STORE', 'R'], ['HALT']];
+    keys = ['A', 'B', 'C', 'R']; mem0 = { A: p.a, B: p.b, C: p.c, R: null };
+  }
+  const n = rows.length;
+  const code = rows.map(r => {
+    const op = r[0];
+    if (op === 'HALT') return { op, text: 'HALT' };
+    return { op, cell: r[1], text: op + ' ' + CELL_LABEL[r[1]] };
+  });
+  const cells = keys.map((k, i) => ({ key: k, label: CELL_LABEL[k], addr: n + i }));
+  return { rows: code, cells, mem0 };
+}
+
+// Run the program and record one snapshot per step.
+// detail = false: one step each for Fetch, Decode, Execute.
+// detail = true:  Fetch is F1..F4 and Execute is E1..E3, using MAR and MDR.
+function run(L, detail){
+  const addrOf = {}, labelOf = {};
+  L.cells.forEach(c => { addrOf[c.key] = c.addr; labelOf[c.key] = c.label; });
+  const s = { pc: 0, ir: '', acc: 0, mar: 0, mdr: '', mem: Object.assign({}, L.mem0) };
+  const snaps = [];
+  let count = 0, halted = false, truncated = false;
+
+  const push = (phase, label, op, cur, text, regs, move, touch) => snaps.push({
+    phase, label, op, cur, text, regs: regs || [], move: move || null, touch: touch || null,
+    halted, n: count, pc: s.pc, ir: s.ir, acc: s.acc, mar: s.mar, mdr: s.mdr, mem: Object.assign({}, s.mem)
+  });
+  push('ready', '', '', null, 'Press Next step. The CPU will run the program one instruction at a time, and every instruction goes through Fetch, Decode and Execute.');
+
+  while (!halted){
+    if (count >= 400){ truncated = true; halted = true; push('end', '', '', null, 'The simulator stopped this program after 400 instructions.'); break; }
+    if (s.pc >= L.rows.length){ halted = true; push('end', '', '', null, 'The PC points past the end of the program, so the CPU stops.'); break; }
+    const i = s.pc, r = L.rows[i];
+    count++;
+
+    // 1. FETCH
+    if (!detail){
+      s.mar = i; s.mdr = r.text; s.ir = r.text; s.pc = i + 1;
+      push('fetch', '', '', i, 'The PC points to the instruction at address ' + i + '. The CPU copies "' + r.text + '" from memory into the IR. Then the PC moves on to ' + s.pc + '.',
+        ['PC', 'IR'], { label: r.text, dir: 'ltr' }, { kind: 'prog', index: i, mode: 'read' });
+    } else {
+      s.mar = i;
+      push('fetch', 'F1', 'MAR ← PC', i, 'The PC (' + i + ') is copied into the MAR. The MAR holds the memory address the CPU is about to read.', ['PC', 'MAR']);
+      s.mdr = r.text;
+      push('fetch', 'F2', 'MDR ← M[MAR]', i, 'The CPU reads memory address ' + i + '. The instruction "' + r.text + '" arrives in the MDR.', ['MAR', 'MDR'], { label: r.text, dir: 'ltr' }, { kind: 'prog', index: i, mode: 'read' });
+      s.ir = r.text;
+      push('fetch', 'F3', 'IR ← MDR', i, 'The instruction is copied from the MDR into the IR.', ['MDR', 'IR']);
+      s.pc = i + 1;
+      push('fetch', 'F4', 'PC ← PC + 1', i, 'The PC goes up by 1, to ' + s.pc + ', so it already points at the next instruction.', ['PC']);
+    }
+
+    // 2. DECODE
+    const addr = r.cell ? addrOf[r.cell] : null, lab = r.cell ? labelOf[r.cell] : '';
+    const meaning = {
+      LOAD: 'copy the number in ' + lab + ' (memory address ' + addr + ') into ACC.',
+      ADD: 'add the number in ' + lab + ' (memory address ' + addr + ') to ACC.',
+      SUB: 'subtract the number in ' + lab + ' (memory address ' + addr + ') from ACC.',
+      STORE: 'copy ACC into ' + lab + ' (memory address ' + addr + ').',
+      HALT: 'stop the CPU.'
+    }[r.op];
+    push('decode', detail ? 'D1' : '', detail ? 'Decode the IR' : '', i, 'The CPU reads the IR. "' + r.text + '" means: ' + meaning, ['IR']);
+
+    // 3. EXECUTE
+    let k = 0;
+    const E = (op, text, regs, move, touch) => push('execute', detail ? 'E' + (++k) : '', detail ? op : '', i, text, regs, move, touch);
+    if (r.op === 'LOAD' || r.op === 'ADD' || r.op === 'SUB'){
+      const v = s.mem[r.cell], before = s.acc;
+      const read = { kind: 'cell', key: r.cell, mode: 'read' };
+      const nv = r.op === 'LOAD' ? v : (r.op === 'ADD' ? before + v : before - v);
+      if (detail){
+        s.mar = addr;
+        E('MAR ← address of ' + lab, 'The address of ' + lab + ' (' + addr + ') is put into the MAR.', ['MAR']);
+        s.mdr = v;
+        E('MDR ← M[MAR]', 'The CPU reads memory address ' + addr + '. The number ' + v + ' arrives in the MDR.', ['MAR', 'MDR'], { label: String(v), dir: 'ltr' }, read);
+        s.acc = nv;
+        if (r.op === 'LOAD') E('ACC ← MDR', 'The number in the MDR (' + v + ') is copied into ACC. ACC is now ' + nv + '.', ['MDR', 'ACC']);
+        else E('ACC ← ACC ' + (r.op === 'ADD' ? '+' : '−') + ' MDR', 'The ALU ' + (r.op === 'ADD' ? 'adds ACC (' + before + ') and the MDR (' + v + ')' : 'subtracts the MDR (' + v + ') from ACC (' + before + ')') + '. ACC is now ' + nv + '.', ['MDR', 'ACC']);
+      } else {
+        s.acc = nv;
+        const t = r.op === 'LOAD' ? 'The CPU copies the number ' + v + ' from ' + lab + ' into ACC. ACC is now ' + nv + '.'
+          : 'The CPU takes ACC (' + before + ') ' + (r.op === 'ADD' ? 'plus' : 'minus') + ' the number in ' + lab + ' (' + v + '). ACC is now ' + nv + '.';
+        E('', t, ['ACC'], { label: String(v), dir: 'ltr' }, read);
+      }
+    } else if (r.op === 'STORE'){
+      const write = { kind: 'cell', key: r.cell, mode: 'write' };
+      if (detail){
+        s.mar = addr;
+        E('MAR ← address of ' + lab, 'The address of ' + lab + ' (' + addr + ') is put into the MAR.', ['MAR']);
+        s.mdr = s.acc;
+        E('MDR ← ACC', 'ACC (' + s.acc + ') is copied into the MDR, ready to be written.', ['ACC', 'MDR']);
+        s.mem[r.cell] = s.mdr;
+        E('M[MAR] ← MDR', 'The number ' + s.mdr + ' is written into memory address ' + addr + '. ' + lab + ' is now ' + s.mdr + '.', ['MDR', 'MAR'], { label: String(s.mdr), dir: 'rtl' }, write);
+      } else {
+        s.mem[r.cell] = s.acc;
+        E('', 'The CPU copies ACC (' + s.acc + ') into ' + lab + '. ' + lab + ' is now ' + s.acc + '.', ['ACC'], { label: String(s.acc), dir: 'rtl' }, write);
+      }
+    } else {
+      halted = true;
+      E('Stop', 'The CPU stops. The program is finished.', []);
+    }
+  }
+  return { snaps, truncated };
+}
+// ==== ENGINE END ====
+
+// ================= UI =================
+const $ = id => document.getElementById(id);
+let progId = 'addsub', op = 'add', detail = false;
+let L = null, snaps = [], step = 0, timer = null;
+
+const clamp = (el, max) => { const v = parseInt(el.value, 10); return isNaN(v) ? 0 : Math.max(0, Math.min(max, v)); };
+const params = () => ({ a: clamp($('na'), 99), b: clamp($('nb'), 99), c: clamp($('nc'), 99), op });
+
+function sumText(p){
+  if (progId === 'addsub') return p.a + (op === 'add' ? ' + ' : ' − ') + p.b;
+  return p.a + ' + ' + p.b + ' + ' + p.c;
+}
+
+function rebuild(){
+  stopPlay();
+  const p = params();
+  document.querySelectorAll('#progSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === progId));
+  document.querySelectorAll('#opSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === op));
+  const show = { fa: true, fop: progId === 'addsub', fb: true, fc: progId === 'three' };
+  Object.keys(show).forEach(id => { $(id).style.display = show[id] ? '' : 'none'; });
+  $('sum').textContent = sumText(p);
+  L = layout(progId, p);
+  snaps = run(L, detail).snaps;
+  step = 0;
+  render();
+}
+
+function render(){
+  const s = snaps[step], last = snaps.length - 1;
+  $('prev').disabled = step === 0;
+  ['next', 'play', 'end'].forEach(id => $(id).disabled = step === last);
+
+  const defs = [['fetch', 'Fetch', 'Get the instruction'], ['decode', 'Decode', 'Work out what it means'], ['execute', 'Execute', 'Do it']];
+  $('stages').innerHTML = defs.map((t, i) => '<div class="stage ' + t[0] + (s.phase === t[0] ? ' on' : '') + '"><div class="n">' + (i + 1) + '</div><div><b>' + t[1] + '</b><span>' + t[2] + '</span></div></div>').join('');
+  $('stepno').textContent = step === 0 ? 'Not started yet' : 'Step ' + step + ' of ' + last + (s.n ? ', instruction ' + s.n : '');
+  $('micro').className = 'micro' + (detail && s.label ? ' show' : '');
+  $('micro').innerHTML = detail && s.label ? '<b>' + s.label + '</b>' + s.op : '';
+  $('say').textContent = s.text;
+
+  // Memory: the program, then the numbers (each row has its own address)
+  const t = s.touch;
+  let m = '<h2>Memory</h2><h3>Program</h3>';
+  L.rows.forEach((r, i) => {
+    const isCur = s.cur === i && s.phase !== 'end';
+    const rd = t && t.kind === 'prog' && t.index === i;
+    m += '<div class="mrow' + (isCur ? ' cur' : '') + (rd ? ' rd' : '') + '"><span class="a">' + i + '</span><span class="t">' + r.text + '</span><span class="tag">' + (isCur ? s.phase : '') + '</span></div>';
+  });
+  m += '<h3>Numbers</h3>';
+  L.cells.forEach(c => {
+    const hit = t && t.kind === 'cell' && t.key === c.key;
+    const v = s.mem[c.key];
+    m += '<div class="mrow' + (hit ? (t.mode === 'write' ? ' wr' : ' rd') : '') + '"><span class="a">' + c.addr + '</span><span class="t">' + c.label + '</span><span class="v">' + (v === null ? '–' : v) + '</span></div>';
+  });
+  $('memP').innerHTML = m;
+
+  // CPU registers (MAR and MDR only in detailed mode)
+  const reg = (n, small, v) => '<div class="reg' + (s.regs.includes(n) ? ' hot' : '') + '"><h4>' + n + '</h4><small>' + small + '</small><span class="v' + (typeof v === 'string' && v.length > 3 ? ' txt' : '') + '">' + v + '</span></div>';
+  let c = '<h2>CPU</h2>' + reg('PC', 'which instruction is next', s.pc) + reg('IR', 'the instruction being worked on', s.ir || '–');
+  if (detail) c += reg('MAR', 'the address to read or write', step === 0 ? '–' : s.mar) + reg('MDR', 'the data going to or from memory', step === 0 || s.mdr === '' ? '–' : s.mdr);
+  c += reg('ACC', 'the CPU\'s working number', s.acc);
+  $('cpuP').innerHTML = c;
+
+  // The moving chip
+  let lane = '';
+  if (s.move) lane = '<div class="chip ' + s.move.dir + ' ' + s.phase + '">' + s.move.label + '</div><div class="lcap">' + (s.move.dir === 'ltr' ? 'Memory → CPU' : 'CPU → Memory') + '</div>';
+  else if (s.phase === 'decode') lane = '<div class="lcap" style="top:calc(50% - 20px)">Nothing moves.<br>The CPU reads the IR.</div>';
+  else if (s.phase === 'fetch' || s.phase === 'execute') lane = '<div class="lcap" style="top:calc(50% - 20px)">Inside the CPU.<br>Nothing goes to memory.</div>';
+  $('lane').innerHTML = lane;
+
+  $('out').innerHTML = step === last ? '<div class="out">' + doneText(s) + '</div>' : '';
+}
+
+function doneText(s){
+  const p = params();
+  return 'Done! ' + sumText(p) + ' = ' + s.mem.R + ', and it is saved in Result.';
+}
+
+function stopPlay(){ if (timer){ clearInterval(timer); timer = null; } $('play').textContent = 'Auto-play'; }
+function startPlay(){
+  if (step >= snaps.length - 1) return;
+  $('play').textContent = 'Pause';
+  timer = setInterval(() => { step++; render(); if (step >= snaps.length - 1) stopPlay(); }, +$('speed').value);
+}
+$('next').onclick = () => { if (step < snaps.length - 1){ step++; render(); } };
+$('prev').onclick = () => { stopPlay(); if (step > 0){ step--; render(); } };
+$('reset').onclick = () => { stopPlay(); step = 0; render(); };
+$('end').onclick = () => { stopPlay(); step = snaps.length - 1; render(); };
+$('play').onclick = () => { timer ? stopPlay() : startPlay(); };
+$('speed').onchange = () => { if (timer){ stopPlay(); startPlay(); } };
+$('detail').onchange = () => { detail = $('detail').checked; rebuild(); };
+[['na', 99], ['nb', 99], ['nc', 99]].forEach(([id, max]) => {
+  $(id).addEventListener('input', () => {
+    if ($(id).value !== '' && clamp($(id), max) !== parseInt($(id).value, 10)) $(id).value = clamp($(id), max);
+    rebuild();
+  });
+  $(id).addEventListener('change', () => { $(id).value = clamp($(id), max); rebuild(); });
+});
+document.querySelectorAll('#opSeg button').forEach(b => b.onclick = () => { op = b.dataset.v; rebuild(); });
+document.querySelectorAll('#progSeg button').forEach(b => b.onclick = () => { progId = b.dataset.v; rebuild(); });
+document.addEventListener('keydown', e => {
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowRight') $('next').click();
+  if (e.key === 'ArrowLeft') $('prev').click();
+});
+
+rebuild();
+</script>
+</body>
+</html>
